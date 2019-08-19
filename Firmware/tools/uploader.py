@@ -17,7 +17,7 @@ class firmware(object):
 		hexstr = line.rstrip()[1:-2]
 		binstr = binascii.unhexlify(hexstr)
 		command = ord(binstr[3])
-		
+
 		# only type 0 and 4 records are interesting
 		if (command == 4 and ord(binstr[0]) == 0x02 and (ord(binstr[1]) << 8) + ord(binstr[2]) == 0x0000):
 			self.upperaddress = (ord(binstr[4]) << 8) + ord(binstr[5])
@@ -90,7 +90,7 @@ class uploader(object):
 	READ_MULTI	= chr(0x28)
 	PARAM_ERASE	= chr(0x29)
 	REBOOT		= chr(0x30)
-	
+
 	PROG_MULTI_MAX	= 32 # 64 causes serial hangs with some USB-serial adapters
 	READ_MULTI_MAX	= 255
 	BANK_PROGRAMING = -1
@@ -155,18 +155,18 @@ class uploader(object):
                 self.debug("trying __sync")
 		self.__send(uploader.NOP * (uploader.PROG_MULTI_MAX + 2))
 		self.port.flushInput()
-		self.__send(uploader.GET_SYNC 
+		self.__send(uploader.GET_SYNC
 				+ uploader.EOC)
                 self.debug("trying __getSync")
 		return self.__getSync(raise_error=False)
 
 	# send the CHIP_ERASE command and wait for the bootloader to become ready
 	def __erase(self, erase_params = False):
-		self.__send(uploader.CHIP_ERASE 
+		self.__send(uploader.CHIP_ERASE
 				+ uploader.EOC)
 		self.__getSync()
 		if (erase_params):
-			self.__send(uploader.PARAM_ERASE 
+			self.__send(uploader.PARAM_ERASE
 					+ uploader.EOC)
 			self.__getSync()
 
@@ -215,7 +215,7 @@ class uploader(object):
                         self.debug("sync_count=%u" % sync_count)
                         self.__getSync()
                         sync_count -= 1
-		
+
 	# verify a byte in flash
 	def __verify(self, data):
 		self.__send(uploader.READ_FLASH
@@ -224,7 +224,7 @@ class uploader(object):
 			return False
 		self.__getSync()
 		return True
-		
+
 	# verify multiple bytes in flash
 	def __verify_multi(self, data):
 		self.__send(uploader.READ_MULTI
@@ -235,7 +235,7 @@ class uploader(object):
 				return False
 		self.__getSync()
 		return True
-		
+
 	# send the reboot command
 	def __reboot(self):
 		self.__send(uploader.REBOOT)
@@ -406,24 +406,24 @@ if __name__ == '__main__':
 		fw.bankingDeteted = True
 
         ports = glob.glob(args.port)
-        if not ports:
+        if not args.port:
                 print("No matching ports for %s" % args.port)
                 sys.exit(1)
         # Connect to the device and identify it
-        for port in glob.glob(args.port):
-                print("uploading to port %s" % port)
-                up = uploader(port, atbaudrate=args.baudrate, use_mavlink=args.mavlink,
-                              mavport=args.mavport, debug=args.debug)
-                if not up.check():
-                        print("Failed to contact bootloader")
-                        sys.exit(1)
-		id, freq = up.identify()
-		print("board %x  freq %x" % (id, freq))
-		# CPU's that support banking have the upper bit set in the byte (0x80)
-		if (fw.bankingDeteted and (id & 0x80) != 0x80):
-			print("This firmware requires a CPU with banking")
+        """for port in args.port:"""
+        print("uploading to port %s" % args.port)
+        up = uploader(args.port, atbaudrate=args.baudrate, use_mavlink=args.mavlink,
+					  mavport=args.mavport, debug=args.debug)
+	if not up.check():
+			print("Failed to contact bootloader")
 			sys.exit(1)
-		if (id & 0x80) == 0x80:
-			fw.bankingDeteted = True
-			print("Using 24bit addresses")
-		up.upload(fw,args.resetparams)
+	id, freq = up.identify()
+	print("board %x  freq %x" % (id, freq))
+	# CPU's that support banking have the upper bit set in the byte (0x80)
+	if (fw.bankingDeteted and (id & 0x80) != 0x80):
+		print("This firmware requires a CPU with banking")
+		sys.exit(1)
+	if (id & 0x80) == 0x80:
+		fw.bankingDeteted = True
+		print("Using 24bit addresses")
+	up.upload(fw,args.resetparams)
